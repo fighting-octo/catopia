@@ -4021,13 +4021,22 @@ function init(){
   if (!load()){
     /* the founding ten: every cat a different coat */
     const pool = COATS.slice();
-    for (let i=0;i<START_CATS;i++){
-      const base = pool.length ? pool.splice(RI(0,pool.length-1),1)[0] : pick(COATS);
+    const takeCoat = breed => {
+      const idx = breed ? pool.findIndex(c=>c.breed===breed) : RI(0, pool.length-1);
+      const base = (idx >= 0 && pool.length) ? pool.splice(idx,1)[0] : pick(COATS);
       const coat = Object.assign({}, base);
-      if (chance(.3)) coat.eye = pick(EYES);
-      /* guarantee at least one of each gender so breeding is possible from day one */
-      const gender = i===0 ? 'F' : i===1 ? 'M' : undefined;
-      G.cats.push(makeCat(G, {coat, gender}));
+      if (!breed && chance(.3)) coat.eye = pick(EYES);
+      return coat;
+    };
+    /* four named regulars everyone starts with */
+    G.cats.push(makeCat(G, {name:'Oskar',        gender:'M', coat: takeCoat()}));
+    G.cats.push(makeCat(G, {name:'Edda',         gender:'F', coat: takeCoat()}));
+    G.cats.push(makeCat(G, {name:'Theodore',     gender:'M', coat: takeCoat()}));
+    G.cats.push(makeCat(G, {name:'Teddy Jerome', gender:'M', coat: takeCoat('Bombay'),
+                            born: G.t, newborn: true}));
+    /* fill the rest with random cats */
+    for (let i=G.cats.length;i<START_CATS;i++){
+      G.cats.push(makeCat(G, {coat: takeCoat()}));
     }
     G.t = 8*60; G.lastDay = 1;
   }
