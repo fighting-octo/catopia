@@ -2828,10 +2828,24 @@ function moveCats(dt){
           if (dist < 98 && ahead > 0.55) brake = Math.min(brake, clamp(dist/98, 0.10, 1));
         }
         /* if somebody really is in the way, stop and let them pass */
-        if (brake < 0.35){
+        if (brake < 0.30){
           c.blocked = (c.blocked||0) + dt;
-          if (c.blocked > 1.0 && chance(0.05)){ c.hold = R(.5,1.5); c.blocked = 0; }
-        } else c.blocked = 0;
+          if (c.blocked > 0.35 && !(c.hold > 0)){
+            c.hold = R(0.5, 1.4);                              /* stand still, don't walk-in-place */
+            c.blockRuns = (c.blockRuns||0) + 1;
+            /* after a couple of dead-ends, turn around and try somewhere else */
+            if (c.blockRuns >= 2 && c.state === 'walk'){
+              const p = randomFloorSpot(c);
+              c.tx = p.x; c.ty = p.y;
+              c.travel = 0; c.bestD = Infinity;
+              c.blockRuns = 0;
+            }
+            c.blocked = 0;
+          }
+        } else {
+          c.blocked = 0;
+          if ((c.blockRuns||0) > 0 && (c.selfMoved||0) > 20) c.blockRuns = 0;
+        }
 
         c.spd = (c.spd||0) + (want*brake - (c.spd||0)) * Math.min(1, dt*5);
         /* a lazy drift so nobody walks a perfectly straight line */
@@ -2841,7 +2855,9 @@ function moveCats(dt){
         const ul = Math.hypot(ux,uy) || 1;
         const mx = (ux/ul)*c.spd*dt, my = (uy/ul)*c.spd*dt;
         c.x += mx; c.y += my;
-        c.selfMoved = Math.hypot(mx,my)/Math.max(dt,0.001);    /* under its own power */
+        /* actual displacement, after walls clamp — a cat shoved into a wall isn't walking */
+        clampFloor(c);
+        c.selfMoved = Math.hypot(c.x - c.frameX, c.y - c.frameY)/Math.max(dt,0.001);
         c.cueX = ux/ul;                                        /* where it means to go */
         c.wantsRun = running;
       }
