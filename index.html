@@ -2864,6 +2864,7 @@ function moveCats(dt){
         clampFloor(c);
         c.selfMoved = Math.hypot(c.x - c.frameX, c.y - c.frameY)/Math.max(dt,0.001);
         c.cueX = ux/ul;                                        /* where it means to go */
+        c.wantVX = ux/ul; c.wantVY = uy/ul;                    /* unit vector, for forward-projection */
         c.wantsRun = running;
       }
     } else {
@@ -2871,6 +2872,7 @@ function moveCats(dt){
       c.spd = (c.spd||0)*0.82;
       c.wantsRun = false;
       c.selfMoved = 0;
+      c.wantVX = 0; c.wantVY = 0;
     }
   });
 
@@ -2883,11 +2885,14 @@ function moveCats(dt){
 
     /* Legs only move if the cat is walking under its own power. Being nudged by a
        neighbour must never start the walk cycle — that was the flicker.
-       Cap self-motion by the net displacement after separate() runs, so a cat whose
-       intended step was cancelled by a neighbour shove reads as standing still. */
-    const netMag = c.frameX !== undefined
-      ? Math.hypot(c.x - c.frameX, c.y - c.frameY)/Math.max(dt,0.001) : 0;
-    c.selfMoved = Math.min(c.selfMoved || 0, netMag * 1.4 + 3);
+       Project the net displacement (post-separate) onto the intended direction: if
+       a cat wanted to step forward but a neighbour shoved it back to zero (or
+       backward), forwardRate is 0 or negative and the gait falls back to rest. */
+    if (c.frameX !== undefined){
+      const netX = c.x - c.frameX, netY = c.y - c.frameY;
+      const forwardRate = (netX*(c.wantVX||0) + netY*(c.wantVY||0))/Math.max(dt,0.001);
+      c.selfMoved = Math.min(c.selfMoved || 0, Math.max(0, forwardRate) + 3);
+    }
     const moved = c.selfMoved || 0;
     /* the legs stop quickly when a cat brakes, but ease in when it sets off */
     const kv = moved < (c.vis||0) ? 0.5 : 0.3;
