@@ -3104,16 +3104,9 @@ function simTick(dtReal, dtGame){
     spawnCritter(isNight() || chance(.35) ? 'wildmouse' : 'butterfly');
   }
 
-  /* the café ticks along contentedly and that alone earns a little affection */
+  /* the café's own patch-of-the-room assignment reshuffles gently over time */
   G.homes = (G.homes||0) + dtReal;
   if (G.homes > 12){ G.homes = 0; assignHomes(); }
-
-  G.calm = (G.calm||0) + dtReal;
-  if (G.calm > 55){
-    G.calm = 0;
-    const avg = G.cats.reduce((s,c)=>s+c.happy,0)/Math.max(1,G.cats.length);
-    addHearts(avg >= 70 ? 2 : 1, 'a contented café');
-  }
 
   advanceClock();
   updateTopbar();
@@ -3886,8 +3879,8 @@ function openHelp(){
       'Cats that join in end up pleased with themselves.<br><br>'+
       '<b style="color:var(--accent)">🦋 Visitors.</b> Every so often a butterfly drifts in, or a mouse slips along the '+
       'skirting. Whoever notices gives chase for a while, and then it wanders off again.<br><br>'+
-      '<b style="color:var(--accent)">💗 &amp; kittens.</b> Affection gathers on its own while the café ticks along, and faster '+
-      'when you join in. At '+BREED_COST+' 💗 you can introduce two grown cats in the breeding room if you would like a kitten. '+
+      '<b style="color:var(--accent)">💗 &amp; kittens.</b> Affection is earned by joining in — pet, feed, put out treats or a toy, '+
+      'run the laser. At '+BREED_COST+' 💗 you can introduce two grown cats in the breeding room if you would like a kitten. '+
       'There is no hurry.<br><br>'+
       '<b style="color:var(--accent)">🚪 Room next door.</b> Past '+ROOM_AT+' cats the café takes the room next door, and they '+
       'wander between the two through the doorway.<br><br>'+
