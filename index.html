@@ -1154,7 +1154,10 @@ const ageDays = c => Math.max(0,(G.t - c.born)/1440);
 const isKitten = c => ageDays(c) < 2;
 /* touch screens are small and fingers are wide — bump the cats a little so they're easier to tap */
 const CAT_BOOST = ((window.matchMedia && window.matchMedia('(hover: none)').matches) || 'ontouchstart' in window) ? 1.18 : 1;
-const catScaleBase = c => (isKitten(c) ? 0.62 : 1) * CAT_BOOST;
+/* cats at the back of the room shrink hard with the perspective and become tiny targets.
+   Boost them without touching cats at the front: 1.28× at back, 1.00× at front, linear. */
+const catBackBoost = c => 1 + (1 - depthT(c.y)) * 0.28;
+const catScaleBase = c => (isKitten(c) ? 0.62 : 1) * CAT_BOOST * catBackBoost(c);
 
 /* breed two cats into a kitten */
 function breedCats(a, b){
