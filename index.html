@@ -601,12 +601,15 @@ body{
   position:absolute; left:86%; top:-4px; width:27px; height:27px; padding:0; border-radius:50%;
   transform:translateX(-50%) scale(var(--inv,1)) scaleX(var(--flip,1));
   background:rgba(22,15,12,.92); border:1.5px solid rgba(232,182,97,.55); color:#f4e6d6;
-  font-size:14px; line-height:1; cursor:pointer; pointer-events:auto;
+  font-size:14px; line-height:1; pointer-events:none;
   display:none; align-items:center; justify-content:center;
   box-shadow:0 3px 9px rgba(0,0,0,.55);
 }
-.cat:hover .feed-btn{display:flex}
-.feed-btn:hover{background:rgba(232,182,97,.32); border-color:var(--accent)}
+/* the little bowl is a visual reminder that this cat is getting hungry */
+.cat.hungry .feed-btn{display:flex; animation:hungryPulse 1.9s ease-in-out infinite}
+@keyframes hungryPulse{
+  0%,100%{opacity:.9} 50%{opacity:.55}
+}
 #feedMenu{
   position:absolute; z-index:200; display:none; min-width:206px; padding:8px;
   border-radius:15px; background:rgba(24,16,13,.97); border:1px solid var(--panel-line);
@@ -852,10 +855,8 @@ button.gender:hover{border-color:currentColor}
   .act{padding:10px 11px; font-size:.78rem}
   .diner-tag{display:none}
 }
-/* on a touch screen the little bowl button belongs to the cat you tapped */
-body.touch .cat:hover .feed-btn{display:none}
-body.touch .cat.selected .feed-btn{display:flex; width:34px; height:34px; font-size:17px}
-body.touch .feed-btn{border-color:rgba(232,182,97,.75)}
+/* on touch, make the hunger-reminder bowl a touch bigger so it reads clearly */
+body.touch .feed-btn{width:32px; height:32px; font-size:16px; border-color:rgba(232,182,97,.75)}
 #cafe.laser-on{touch-action:none}
 </style>
 </head>
@@ -894,7 +895,7 @@ body.touch .feed-btn{border-color:rgba(232,182,97,.75)}
   <button class="act primary" id="mouseBtn">🐭 Mouse Toy</button>
   <button class="act primary" id="laserBtn">🔦 Laser Pointer</button>
   <button class="act" id="featherBtn">🪶 Feather Wand</button>
-  <div class="hint">Nothing here needs you — the bowls fill themselves and the cats look after themselves.<br>Stay and watch, or join in: click a cat for its card, its 🥣 for a treat, or put out a toy.</div>
+  <div class="hint">Nothing here needs you — the bowls fill themselves and the cats look after themselves.<br>Stay and watch, or join in: tap a cat to open its card, or put out a toy.</div>
 </div>
 
 <div id="toasts"></div>
@@ -1151,7 +1152,9 @@ function makeCat(state, opts){
 const has = (c,p) => c.perks.indexOf(p) >= 0;
 const ageDays = c => Math.max(0,(G.t - c.born)/1440);
 const isKitten = c => ageDays(c) < 2;
-const catScaleBase = c => isKitten(c) ? 0.62 : 1;
+/* touch screens are small and fingers are wide — bump the cats a little so they're easier to tap */
+const CAT_BOOST = ((window.matchMedia && window.matchMedia('(hover: none)').matches) || 'ontouchstart' in window) ? 1.18 : 1;
+const catScaleBase = c => (isKitten(c) ? 0.62 : 1) * CAT_BOOST;
 
 /* breed two cats into a kitten */
 function breedCats(a, b){
@@ -2123,9 +2126,8 @@ function mountCat(c){
   el.className = 'cat';
   el.dataset.id = c.id;
   el.innerHTML = '<div class="cat-tag"></div>'+
-                 '<button class="feed-btn" title="Feed this cat">🥣</button>'+
+                 '<span class="feed-btn" aria-hidden="true">🥣</span>'+
                  '<div class="zzz">💤</div><div class="cat-inner">'+catSVG(c,124)+'</div>';
-  el.querySelector('.feed-btn').addEventListener('click', ev=>{ ev.stopPropagation(); openFeedMenu(c.id); });
   el.querySelector('.cat-tag').textContent = c.name;
   el.addEventListener('click', ev => { ev.stopPropagation(); openSpec(c.id); });
   cafe.appendChild(el);
@@ -2993,6 +2995,7 @@ function simTick(dtReal, dtGame){
     /* --- needs --- */
     const appetiteRate = 0.10 * (0.7 + c.traits.appetite/14) * (has(c,'glutton')?1.35:1) * (has(c,'picky')?0.85:1);
     c.hunger = clamp(c.hunger - appetiteRate*dtGame, 0, 100);
+    if (c.el) c.el.classList.toggle('hungry', c.hunger < 55);
     let happyRate = 0.030 * (has(c,'zen')?0.45:1);
     if (c.hunger < 22) happyRate += 0.05;
     if (has(c,'sunbather')) happyRate *= night ? 1.4 : 0.7;
@@ -3137,9 +3140,8 @@ function advanceClock(){
    11. FOOD & TREATS
    ============================================================ */
 const FOODS = {
-  wet:   {icon:'🥫', name:'Wet food', note:'A proper meal — fills them up',      fill:38, happy:8,  bond:2, meal:true,  cool:40, css:'food-wet'},
-  dry:   {icon:'🍖', name:'Dry food', note:'A handful of kibble',                fill:24, happy:3,  bond:1, meal:false, cool:25, css:'food-dry'},
-  treat: {icon:'🐟', name:'Treat',    note:'Barely food. Utterly worth it.',     fill:9,  happy:16, bond:5, meal:false, cool:12, css:'food-treat'}
+  meal:  {icon:'🍽', name:'Food',  note:'A proper meal — food goes in the diner', fill:32, happy:7,  bond:2, meal:true,  cool:35, css:'food-wet'},
+  treat: {icon:'🐟', name:'Treat', note:'Barely food. Utterly worth it.',         fill:9,  happy:16, bond:5, meal:false, cool:12, css:'food-treat'}
 };
 
 /* --- the little bowl next to a cat --- */
@@ -3671,7 +3673,8 @@ function openSpec(id){
     '<div class="m-foot">'+
       '<button class="act primary" onclick="petCat(\''+c.id+'\')">🤚 Pet</button>'+
       '<button class="act primary" onclick="playWith(\''+c.id+'\')">🪶 Play</button>'+
-      '<button class="act" onclick="feedFromCard(\''+c.id+'\')">🥣 Feed</button>'+
+      '<button class="act primary" onclick="feedFromCard(\''+c.id+'\')">🍽 Feed</button>'+
+      '<button class="act primary" onclick="treatFromCard(\''+c.id+'\')">🐟 Treat</button>'+
       '<button class="act" onclick="renameCat(\''+c.id+'\')">✏️ Rename</button>'+'<button class="act" onclick="findCat(\''+c.id+'\')">👀 Where is it?</button>'+
       '<button class="act" style="margin-left:auto" onclick="closeAll()">Close</button>'+
     '</div>';
@@ -3706,7 +3709,8 @@ function playWith(id){
   const toy = S.toys[S.toys.length-1];
   if (toy){ toy.x = c.x; if (c.state!=='eat'){ wake(c,true); c.state='chase'; c.toy=toy; } }
 }
-function feedFromCard(id){ closeAll(); openFeedMenu(id); }
+function feedFromCard(id){ closeAll(); handFeed(id, 'meal'); }
+function treatFromCard(id){ closeAll(); handFeed(id, 'treat'); }
 function findCat(id){
   const c = G.cats.find(x=>x.id===id); if (!c) return;
   closeAll();
@@ -3872,9 +3876,9 @@ function openHelp(){
       'trees, shelves and sills, have a good scratch on the posts, drink from the fountains, hop into the litter tray for a quiet moment, '+
       'and curl up for a nap — in a basket, in the armchair, up a cat tree or on a shelf, and best of all on the warm lid of the fish tank. '+
       'At any time some of them are asleep and the rest are pottering about.<br><br>'+
-      '<b style="color:var(--accent)">🥣 Feeding.</b> Only if you feel like it. Every cat has a small bowl button beside it: '+
-      '<b>🥫 wet food</b>, <b>🍖 dry food</b> or <b>🐟 a treat</b>. The food goes into a bowl in the diner and the cat strolls '+
-      'over to eat it. The 🍽 button puts fresh food in every bowl at once.<br><br>'+
+      '<b style="color:var(--accent)">🥣 Feeding.</b> Only if you feel like it. A little bowl 🥣 gently pulses beside any cat '+
+      'that\'s getting hungry — a reminder, not a button. Tap a cat to open its card, then <b>🍽 Feed</b> or <b>🐟 Treat</b>: '+
+      'the food goes into a bowl in the diner and the cat strolls over. The 🍽 button in the tray puts fresh food in every bowl at once.<br><br>'+
       '<b style="color:var(--accent)">🎾 Playing.</b> Ball, mouse toy, feather wand and a laser pointer to lead them around. '+
       'Cats that join in end up pleased with themselves.<br><br>'+
       '<b style="color:var(--accent)">🦋 Visitors.</b> Every so often a butterfly drifts in, or a mouse slips along the '+
