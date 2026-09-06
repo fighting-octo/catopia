@@ -2062,10 +2062,17 @@ function assignHomes(){
   ROOMS.forEach(R=>{
     const here = G.cats.filter(c=>roomIx(c) === R.i);
     if (!here.length) return;
-    here.sort((a,b)=>a.x - b.x);
-    here.forEach((c,k)=>{
-      const want = (k + 0.5) / here.length;
-      c.home = (c.home === undefined) ? want : c.home + (want - c.home)*0.5;   /* ease over */
+    /* horizontal patches */
+    const byX = here.slice().sort((a,b)=>a.x - b.x);
+    byX.forEach((c,k)=>{
+      const want = (k + 0.5) / byX.length;
+      c.home = (c.home === undefined) ? want : c.home + (want - c.home)*0.5;
+    });
+    /* depth patches too, so nobody is stuck at the same depth as everyone else */
+    const byY = here.slice().sort((a,b)=>a.y - b.y);
+    byY.forEach((c,k)=>{
+      const want = (k + 0.5) / byY.length;
+      c.homeY = (c.homeY === undefined) ? want : c.homeY + (want - c.homeY)*0.5;
     });
   });
 }
@@ -2097,10 +2104,11 @@ function randomFloorSpot(c, near){
     if (nearest < Infinity) score += 520/(95 + nearest);
     /* and a gentle pull back to its own patch of the room */
     if (c.home !== undefined && !near) score += Math.abs((x - a)/Math.max(1,(b - a)) - c.home) * 1.1;
-    /* nudge them to actually go somewhere, and to use the whole depth of the room */
+    /* pull each cat toward its own depth-band too, so they use the whole floor front-to-back */
+    if (c.homeY !== undefined && !near) score += Math.abs(depthT(y) - c.homeY) * 1.0;
+    /* nudge them to actually go somewhere */
     const travel = Math.hypot(x-c.x, (y-c.y)*2.2);
     if (!near) score -= Math.min(travel, 460)/460 * 0.8;
-    score += Math.abs(depthT(y) - 0.5) * 0.06;      /* only a slight pull off the very edges */
     if (score < bestScore){ bestScore = score; best = {x,y}; }
   }
   return best || {x:(ROOMS[ri].x0+ROOMS[ri].x1)/2, y:(S.backY+S.frontY)/2};
@@ -2242,7 +2250,7 @@ function stepJump(c, dt){
   }
 }
 function baseSpeed(c, running){
-  return (running?58:24) * (0.75 + c.traits.agility/16) * (has(c,'speedy')?1.35:1)
+  return (running?48:19) * (0.75 + c.traits.agility/16) * (has(c,'speedy')?1.35:1)
        * (c.pace || 1) * (isKitten(c)?1.15:1) * (0.72 + depthScale(c.y)*0.4);
 }
 
@@ -3534,13 +3542,22 @@ function exciteCritter(c, cr){
 function dropCritter(cr){
   cr.el.remove();
   S.critters = S.critters.filter(x=>x!==cr);
+  let played = 0;
   G.cats.forEach(c=>{
     if (c.critter === cr){
       c.critter = null;
       if (c.state==='chase'){ c.state='idle'; c.wait=R(.6,2.4); }
-      if (cr.touched.has(c.id)){ c.happy = clamp(c.happy+7,0,100); cheer(c, 16); floatCat(c,'😸'); }
+      if (cr.touched.has(c.id)){
+        c.happy = clamp(c.happy+7,0,100); cheer(c, 16); floatCat(c,'😸');
+        played++;
+      }
     }
   });
+  /* butterflies are a treat: whoever gave chase earns you a little affection */
+  if (cr.kind === 'butterfly' && played > 0){
+    const n = Math.min(3, played);
+    addHearts(n, played >= 3 ? 'the butterfly delighted the café!' : played >= 2 ? 'butterfly chase' : 'a butterfly moment');
+  }
 }
 function moveCritters(dt){
   S.critters.forEach(cr=>{
