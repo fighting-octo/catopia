@@ -2882,7 +2882,12 @@ function moveCats(dt){
     if (!onSpot) clampFloor(c);
 
     /* Legs only move if the cat is walking under its own power. Being nudged by a
-       neighbour must never start the walk cycle — that was the flicker. */
+       neighbour must never start the walk cycle — that was the flicker.
+       Cap self-motion by the net displacement after separate() runs, so a cat whose
+       intended step was cancelled by a neighbour shove reads as standing still. */
+    const netMag = c.frameX !== undefined
+      ? Math.hypot(c.x - c.frameX, c.y - c.frameY)/Math.max(dt,0.001) : 0;
+    c.selfMoved = Math.min(c.selfMoved || 0, netMag * 1.4 + 3);
     const moved = c.selfMoved || 0;
     /* the legs stop quickly when a cat brakes, but ease in when it sets off */
     const kv = moved < (c.vis||0) ? 0.5 : 0.3;
