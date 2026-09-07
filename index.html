@@ -2559,7 +2559,13 @@ function decide(c){
   if (sleepy && !S.toys.length){ goSleep(c); return; }
   const t = (c.temper === undefined) ? 0.6 : c.temper;
   const roll = Math.random();
-  if (!S.toys.length && roll < (has(c,'acrobat') ? 0.28 : 0.15) && goLounge(c)) return;
+  /* aim for ~50/50 between floor cats and structure cats: whenever the floor gets
+     crowded, boost the odds each newly-deciding cat picks a perch instead. */
+  const onStructure = G.cats.reduce((n,o)=>n + (o.spot && (o.state==='sleep' || o.state==='lounge') ? 1 : 0), 0);
+  const floorShare  = (G.cats.length - onStructure) / Math.max(1, G.cats.length);
+  const balanceBoost = Math.max(0, (floorShare - 0.5) * 0.9);   /* 0 at 50/50, up to +0.45 when floor-heavy */
+  const loungeChance = (has(c,'acrobat') ? 0.55 : 0.32) + balanceBoost;
+  if (!S.toys.length && roll < loungeChance && goLounge(c)) return;
   /* a good scratch on one of the posts */
   if (!S.toys.length && roll > 0.83 && roll < 0.95 && goScratch(c)) return;
   /* a drink, or a visit to the tray */
