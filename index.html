@@ -3915,29 +3915,29 @@ function _audio(){
 function playPurr(){
   const ctx = _audio(); if (!ctx) return;
   if (ctx.state === 'suspended') ctx.resume();
-  const now = ctx.currentTime, dur = 1.9;
+  const now = ctx.currentTime, dur = 3.4;
 
   const master = ctx.createGain();
   master.gain.setValueAtTime(0.0001, now);
-  master.gain.exponentialRampToValueAtTime(0.22, now + 0.14);
-  master.gain.setValueAtTime(0.22, now + dur - 0.4);
-  master.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+  master.gain.exponentialRampToValueAtTime(0.13, now + 0.28);   /* gentler peak, slower fade-in */
+  master.gain.setValueAtTime(0.13, now + dur - 0.85);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + dur);  /* long tail so it drifts away */
   master.connect(ctx.destination);
 
   const lp = ctx.createBiquadFilter();
-  lp.type = 'lowpass'; lp.frequency.value = 260; lp.Q.value = 0.9;
+  lp.type = 'lowpass'; lp.frequency.value = 210; lp.Q.value = 0.85;   /* softer top end */
   lp.connect(master);
 
   const carrier = ctx.createOscillator();
   carrier.type = 'sawtooth'; carrier.frequency.value = 27;
   const carrierGain = ctx.createGain();
-  carrierGain.gain.setValueAtTime(0.42, now);
+  carrierGain.gain.setValueAtTime(0.36, now);
   carrier.connect(carrierGain).connect(lp);
 
   const lfo = ctx.createOscillator();
-  lfo.type = 'sine'; lfo.frequency.value = 5.4;
+  lfo.type = 'sine'; lfo.frequency.value = 5.2;
   const lfoAmp = ctx.createGain();
-  lfoAmp.gain.value = 0.32;
+  lfoAmp.gain.value = 0.28;
   lfo.connect(lfoAmp).connect(carrierGain.gain);
 
   const noiseBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
@@ -3945,8 +3945,8 @@ function playPurr(){
   for (let i=0; i<data.length; i++) data[i] = (Math.random()*2 - 1) * 0.5;
   const noise = ctx.createBufferSource(); noise.buffer = noiseBuf;
   const noiseFilt = ctx.createBiquadFilter();
-  noiseFilt.type = 'lowpass'; noiseFilt.frequency.value = 320;
-  const noiseGain = ctx.createGain(); noiseGain.gain.setValueAtTime(0.24, now);
+  noiseFilt.type = 'lowpass'; noiseFilt.frequency.value = 280;
+  const noiseGain = ctx.createGain(); noiseGain.gain.setValueAtTime(0.15, now);
   noise.connect(noiseFilt).connect(noiseGain).connect(lp);
   lfoAmp.connect(noiseGain.gain);   /* same LFO pulses the noise too */
 
@@ -3967,7 +3967,7 @@ function showCardPurr(c){
   p.className = 'card-purr';
   p.innerHTML = 'brrrrr brrrrr brrrr <span class="card-purr-heart">💗</span>';
   portrait.appendChild(p);
-  setTimeout(()=>{ portrait.classList.remove('purring'); if (p.parentNode) p.remove(); }, 1900);
+  setTimeout(()=>{ portrait.classList.remove('purring'); if (p.parentNode) p.remove(); }, 3300);
 }
 function playWith(id){
   const c = G.cats.find(x=>x.id===id); if (!c) return;
