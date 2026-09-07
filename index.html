@@ -88,6 +88,11 @@ body{
 #nextRoomBtn{right:10px}
 body.touch .room-nav{width:48px; height:48px; font-size:1.7rem}
 .room{position:absolute; top:0; bottom:0; overflow:hidden}
+/* each room takes on a slightly different hue so it feels like a distinct space,
+   without touching cats/toys (they live outside the .room element in the stage). */
+.room[data-theme="1"]{filter: hue-rotate(60deg) saturate(.85)}
+.room[data-theme="2"]{filter: hue-rotate(130deg) saturate(.95)}
+.room[data-theme="3"]{filter: hue-rotate(-40deg) saturate(.9) brightness(1.02)}
 .plane{position:absolute; inset:0; pointer-events:none}
 .r-ceiling{z-index:1; clip-path:polygon(0 0, 15% 4%, 85% 4%, 100% 0); background:linear-gradient(180deg,#1e1512,#33241d)}
 .r-wallback{
@@ -408,22 +413,22 @@ body.touch .room-nav{width:48px; height:48px; font-size:1.7rem}
 @keyframes jellySway{0%,100%{transform:rotate(-3.5deg)} 50%{transform:rotate(4deg)}}
 
 /* the doorway between two rooms */
-#doorBack{
+.door-back{
   position:absolute; z-index:5; overflow:hidden;
   background:
     radial-gradient(70% 50% at 50% 108%, rgba(255,196,120,.22), transparent 70%),
     linear-gradient(180deg,#241a16 0%,#3a2a22 52%,#5a4130 100%);
   box-shadow:inset 0 0 46px rgba(0,0,0,.6);
 }
-#doorBack:after{                       /* the skirting of the room beyond */
+.door-back:after{                       /* the skirting of the room beyond */
   content:""; position:absolute; left:0; right:0; bottom:0; height:11px;
   background:linear-gradient(180deg,#7a5540,#432c21);
 }
-#doorSill{
+.door-sill{
   position:absolute; z-index:7; height:9px; border-radius:2px;
   background:linear-gradient(180deg,#a5744d,#5c3d28); box-shadow:0 4px 10px rgba(0,0,0,.5);
 }
-#doorFloor{
+.door-floor{
   position:absolute; z-index:6;
   background:
     repeating-conic-gradient(from 178deg at 50% -52%,
@@ -431,24 +436,24 @@ body.touch .room-nav{width:48px; height:48px; font-size:1.7rem}
     linear-gradient(180deg,#5b3d28 0%, #7c5335 40%, #8e5f3d 100%);
   box-shadow:inset 0 14px 26px rgba(0,0,0,.5);
 }
-#doorArch{
+.door-arch{
   position:absolute; z-index:7; pointer-events:none;
   border:0 solid transparent;
 }
-#doorArch .jamb{
+.door-arch .jamb{
   position:absolute; top:0; bottom:0; width:19px;
   background:linear-gradient(90deg,#8a6046,#5c3f2e); box-shadow:0 0 20px rgba(0,0,0,.55);
 }
-#doorArch .lintel{
+.door-arch .lintel{
   position:absolute; left:-6px; right:-6px; top:0; height:24px;
   background:linear-gradient(180deg,#9a6b4c,#6a4834);
   border-radius:3px; box-shadow:0 10px 20px rgba(0,0,0,.55);
 }
-#doorArch .glow{
+.door-arch .glow{
   position:absolute; left:10%; right:10%; top:20px; bottom:0;
   background:radial-gradient(ellipse at 50% 100%, rgba(255,205,140,.30), transparent 74%);
 }
-#doorSign{
+.door-sign{
   position:absolute; z-index:8; font-size:.54rem; letter-spacing:2px; white-space:nowrap;
   color:rgba(255,232,196,.5); text-align:center; pointer-events:none;
 }
@@ -662,6 +667,21 @@ body.touch .room-nav{width:48px; height:48px; font-size:1.7rem}
   animation:floatUp 1.3s ease-out forwards;
 }
 @keyframes floatUp{0%{transform:translateY(0) scale(.6); opacity:0} 20%{opacity:1} 100%{transform:translateY(-62px) scale(1.25); opacity:0}}
+/* purr bubble: pet a cat and its little portrait pops up beside it with a rumbling brrrrr */
+.purr-bubble{
+  position:absolute; pointer-events:none; z-index:172;
+  display:flex; align-items:center; gap:7px; padding:5px 9px 5px 5px;
+  background:rgba(20,13,11,.86); border:1.5px solid rgba(232,182,97,.55); border-radius:22px;
+  box-shadow:0 4px 12px rgba(0,0,0,.5);
+  animation:purrIn .28s ease-out both, purrOut .5s ease-in 1.7s forwards;
+  transform-origin: bottom left;
+}
+.purr-bubble svg{width:34px; height:34px; display:block; overflow:visible}
+.purr-bubble .purr-text{font-size:.72rem; color:#f4e6d6; white-space:nowrap; letter-spacing:.6px;
+  animation:purrText .38s ease-in-out infinite}
+@keyframes purrIn{from{opacity:0; transform:translateY(6px) scale(.82)} to{opacity:1; transform:translateY(0) scale(1)}}
+@keyframes purrOut{from{opacity:1} to{opacity:0; transform:translateY(-6px)}}
+@keyframes purrText{0%,100%{opacity:1; letter-spacing:.6px} 50%{opacity:.55; letter-spacing:1.2px}}
 .toy{position:absolute; z-index:150; pointer-events:none; font-size:26px; filter:drop-shadow(0 3px 4px rgba(0,0,0,.5))}
 .ball{width:22px; height:22px; border-radius:50%; background:radial-gradient(circle at 32% 30%,#ffd9a0,#e07a4a 60%,#a84b26); box-shadow:0 3px 6px rgba(0,0,0,.45)}
 .critter{position:absolute; z-index:150; pointer-events:none; will-change:transform}
@@ -895,13 +915,7 @@ body.touch .feed-btn{width:32px; height:32px; font-size:16px; border-color:rgba(
 </div>
 
 <div id="cafe">
-  <div id="rooms">
-    <div id="doorBack"></div>
-    <div id="doorFloor"></div>
-    <div id="doorSill"></div>
-    <div id="doorArch"><div class="glow"></div><div class="jamb l"></div><div class="jamb r"></div><div class="lintel"></div></div>
-    <div id="doorSign">🐾 NEXT DOOR 🐾</div>
-  </div>
+  <div id="rooms"></div>
   <div id="nightVeil"></div>
   <div id="indoorLight"></div>
   <div id="laserDot"></div>
@@ -1213,7 +1227,7 @@ function breedCats(a, b){
 const SAVE_KEY = 'catopia.cafe.v2';
 const OLD_SAVE_KEYS = [];
 const START_CATS = 7;
-const MAX_CATS = 24;
+const MAX_CATS = 40;
 const BREED_COST = 12;
 
 
@@ -1246,13 +1260,23 @@ const stage = $('rooms');   /* the sliding container: rooms + cats + toys + ever
 
 /* these must match the clip-paths in the CSS */
 const ROOM = {top:0.04, backY:0.58, backL:0.15, backR:0.85, frontY:0.985};
-const MAX_ROOMS = 2, ROOM_AT = 9;           /* a 10th cat opens the room next door */
+const MAX_ROOMS = 4;
+/* how many rooms are open at a given cat count: one room plus one for every 10 cats */
+const roomsWantedFor = n => Math.min(MAX_ROOMS, 1 + Math.floor(n/10));
 const DOOR_T0 = 0.02, DOOR_T1 = 0.62;       /* the passage spans this depth band     */
 const ROOMS = [];                            /* {i,x0,x1,backL,backR} in page pixels  */
 
 /* the markup for one room — room 1 is decorated a little differently */
+/* each room gets a slightly different look — same layout, different palette + signage */
+const ROOM_THEMES = [
+  {label:'CAT CAFÉ', line1:'☕ COFFEE &amp; CATS',    line2:'🐾 NO RUSH',        line3:'😌 STAY A WHILE'},
+  {label:'NAP ROOM', line1:'🛋 SOFAS &amp; SUNSPOTS', line2:'😴 QUIET HOURS',    line3:'🌿 CAT GRASS'},
+  {label:'GARDEN',   line1:'🌿 SUN &amp; LEAVES',    line2:'🐦 BIRDWATCHING',   line3:'🌸 HERB SNACKS'},
+  {label:'LOFT',     line1:'🌙 UP HIGH',              line2:'✨ SKYLIGHT DREAMS', line3:'☕ SLOW MORNINGS'}
+];
 function roomHTML(i){
   const alt = i > 0;
+  const th  = ROOM_THEMES[i % ROOM_THEMES.length];
   const art = alt
     ? '<div class="frame" style="left:38%; top:10%; width:80px; height:88px">'+
         '<svg viewBox="0 0 60 66" width="100%" height="100%">'+
@@ -1324,9 +1348,7 @@ function roomHTML(i){
     '<div class="lamp" style="left:33%"><i></i><b></b></div>'+
     '<div class="lamp" style="left:58%"><i></i><b></b></div>'+
     (alt ? '' : '<div class="lamp" style="left:83%"><i></i><b></b></div>')+
-    '<div class="r-board">'+(alt
-        ? '<b>NAP ROOM</b>🛋 SOFAS &amp; SUNSPOTS<br>😴 QUIET HOURS<br>🌿 CAT GRASS'
-        : '<b>CAT CAFÉ</b>☕ COFFEE &amp; CATS<br>🐾 NO RUSH<br>😌 STAY A WHILE')+'</div>'+
+    '<div class="r-board"><b>'+th.label+'</b>'+th.line1+'<br>'+th.line2+'<br>'+th.line3+'</div>'+
     art+
     '<div class="shelf sh1" style="left:38%; top:31%; width:22%; min-width:120px">'+
       '<span class="shelf-item" style="right:8px">'+(alt?'🧶':'📚')+'</span></div>'+
@@ -1384,6 +1406,7 @@ function ensureRooms(n){
     const el = document.createElement('div');
     el.className = 'room';
     el.dataset.room = i;
+    el.dataset.theme = i;
     el.innerHTML = roomHTML(i);
     host.appendChild(el);
     S.rooms.push({i, el});
@@ -1477,6 +1500,8 @@ const floorX = (t, fx, ri) => {
   return {x:a + fx*(b-a), y};
 };
 const doorX = () => ROOMS.length > 1 ? ROOMS[0].x1 : S.W/2;
+/* border between two adjacent rooms — the doorway they walk through */
+const doorBetween = (a, b) => ROOMS[Math.min(a,b)].x1;
 const doorY = () => S.backY + (DOOR_T0+DOOR_T1)/2*(S.frontY - S.backY);
 
 const bowlHTML = () =>
@@ -2053,35 +2078,57 @@ function paintMural(el){
     '</svg>';
 }
 
-/* ---- the doorway in the wall between the two rooms ---- */
+/* ---- one doorway per adjacent room pair ---- */
 function layoutDoor(){
-  const db = $('doorBack'), df = $('doorFloor'), da = $('doorArch'), ds = $('doorSign'), dl = $('doorSill');
-  if (ROOMS.length < 2){ [db,df,da,ds,dl].forEach(e=>e.style.display='none'); return; }
-  [db,df,da,ds,dl].forEach(e=>e.style.display='block');
-  const y0 = S.backY + DOOR_T0*(S.frontY-S.backY);      /* where the passage floor starts */
-  const y1 = S.backY + DOOR_T1*(S.frontY-S.backY);      /* … and where it ends            */
-  const l0 = roomBounds(y0,0)[1], l1 = roomBounds(y1,0)[1];
-  const r0 = roomBounds(y0,1)[0], r1 = roomBounds(y1,1)[0];
-  const minX = Math.min(l0,l1), maxX = Math.max(r0,r1);
+  const pairs = ROOMS.length - 1;
+  /* recycle existing door sets, add or remove so the count matches pairs */
+  const existing = stage.querySelectorAll('.door-set');
+  const have = existing.length;
+  if (have > pairs){
+    for (let k=pairs; k<have; k++) existing[k].remove();
+  }
+  for (let k=have; k<pairs; k++){
+    const set = document.createElement('div');
+    set.className = 'door-set';
+    set.innerHTML =
+      '<div class="door-back"></div>'+
+      '<div class="door-floor"></div>'+
+      '<div class="door-sill"></div>'+
+      '<div class="door-arch"><div class="glow"></div><div class="jamb l"></div><div class="jamb r"></div><div class="lintel"></div></div>'+
+      '<div class="door-sign">🐾 NEXT DOOR 🐾</div>';
+    stage.appendChild(set);
+  }
+  if (!pairs) return;
+
+  const y0 = S.backY + DOOR_T0*(S.frontY-S.backY);
+  const y1 = S.backY + DOOR_T1*(S.frontY-S.backY);
   const archTop = S.H*0.26;
 
-  /* the far wall of the passage, seen through the opening */
-  db.style.left = l0+'px'; db.style.top = archTop+'px';
-  db.style.width = (r0-l0)+'px'; db.style.height = (y0-archTop)+'px';
+  stage.querySelectorAll('.door-set').forEach((set, k) => {
+    const db = set.querySelector('.door-back'),
+          df = set.querySelector('.door-floor'),
+          da = set.querySelector('.door-arch'),
+          ds = set.querySelector('.door-sign'),
+          dl = set.querySelector('.door-sill');
+    const l0 = roomBounds(y0, k)[1],   l1 = roomBounds(y1, k)[1];
+    const r0 = roomBounds(y0, k+1)[0], r1 = roomBounds(y1, k+1)[0];
+    const minX = Math.min(l0, l1), maxX = Math.max(r0, r1);
 
-  /* the passage floor, tapering toward the viewer */
-  df.style.left = minX+'px'; df.style.top = y0+'px';
-  df.style.width = (maxX-minX)+'px'; df.style.height = (y1-y0)+'px';
-  df.style.clipPath = 'polygon('+[[l0,y0],[r0,y0],[r1,y1],[l1,y1]]
-      .map(p=>(p[0]-minX).toFixed(1)+'px '+(p[1]-y0).toFixed(1)+'px').join(',')+')';
+    db.style.left = l0+'px'; db.style.top = archTop+'px';
+    db.style.width = (r0-l0)+'px'; db.style.height = (y0-archTop)+'px';
 
-  /* the frame around it */
-  da.style.left = (l0-15)+'px'; da.style.top = (archTop-24)+'px';
-  da.style.width = (r0-l0+30)+'px'; da.style.height = (y0-archTop+30)+'px';
-  da.querySelector('.jamb.l').style.left = '0px';
-  da.querySelector('.jamb.r').style.right = '0px';
-  dl.style.left = (l0-4)+'px'; dl.style.top = (y0-4)+'px'; dl.style.width = (r0-l0+8)+'px';
-  ds.style.left = (l0-15)+'px'; ds.style.top = (archTop-42)+'px'; ds.style.width = (r0-l0+30)+'px';
+    df.style.left = minX+'px'; df.style.top = y0+'px';
+    df.style.width = (maxX-minX)+'px'; df.style.height = (y1-y0)+'px';
+    df.style.clipPath = 'polygon('+[[l0,y0],[r0,y0],[r1,y1],[l1,y1]]
+        .map(p=>(p[0]-minX).toFixed(1)+'px '+(p[1]-y0).toFixed(1)+'px').join(',')+')';
+
+    da.style.left = (l0-15)+'px'; da.style.top = (archTop-24)+'px';
+    da.style.width = (r0-l0+30)+'px'; da.style.height = (y0-archTop+30)+'px';
+    da.querySelector('.jamb.l').style.left = '0px';
+    da.querySelector('.jamb.r').style.right = '0px';
+    dl.style.left = (l0-4)+'px'; dl.style.top = (y0-4)+'px'; dl.style.width = (r0-l0+8)+'px';
+    ds.style.left = (l0-15)+'px'; ds.style.top = (archTop-42)+'px'; ds.style.width = (r0-l0+30)+'px';
+  });
 }
 
 /* How busy a patch of floor is. Counts cats that are there and cats on their way there,
@@ -2163,12 +2210,16 @@ function randomFloorSpot(c, near){
 /* walk somewhere, going through the doorway when it is in another room */
 function headFor(c, x, y, room, state){
   room = (room === undefined) ? roomIx(c) : clamp(room, 0, ROOMS.length-1);
-  if (room !== roomIx(c) && ROOMS.length > 1){
-    c.crossTo = room;
-    c.finalX = x; c.finalY = y;
-    c.tx = doorX(); c.ty = doorY();
+  const from = roomIx(c);
+  if (room !== from && ROOMS.length > 1){
+    /* only step to the adjacent room this trip; finalRoom keeps track of the ultimate goal */
+    const step = room > from ? 1 : -1;
+    const nextRoom = from + step;
+    c.crossTo = nextRoom;
+    c.finalRoom = room; c.finalX = x; c.finalY = y;
+    c.tx = doorBetween(from, nextRoom); c.ty = doorY();
   } else {
-    c.crossTo = null;
+    c.crossTo = null; c.finalRoom = undefined;
     c.tx = x; c.ty = y;
   }
   if (state) c.state = state;
@@ -2313,6 +2364,20 @@ function floatAt(x, y, txt, delay){
   }, delay||0);
 }
 const floatCat = (c, txt, d) => floatAt(c.x, c.y - 22*depthScale(c.y), txt, d);
+
+/* purr feedback: a little portrait of the petted cat with a rumbling brrrr next to it */
+function showPurr(c){
+  if (!c || !c.el) return;
+  const el = document.createElement('div');
+  el.className = 'purr-bubble';
+  el.innerHTML = catSVG(c, 36) + '<span class="purr-text">brrrrr brrrrr brrrr</span>';
+  const s = (c.spot && (c.state==='sleep'||c.state==='lounge')) ? c.spot.scale : depthScale(c.y);
+  el.style.left = (c.x + 22*s) + 'px';
+  el.style.top  = (c.y - 82*s) + 'px';
+  el.style.zIndex = catZ(c.y) + 6;
+  stage.appendChild(el);
+  setTimeout(()=>el.remove(), 2300);
+}
 
 /* a cat that has just been petted, played with or fed looks pleased for a while */
 function cheer(c, secs){
@@ -2619,12 +2684,18 @@ function decide(c){
   if (!S.toys.length && roll > 0.47 && roll < 0.55 && goLitter(c)) return;
   /* now and then, go and see what is happening in the room next door */
   if (ROOMS.length > 1 && !S.toys.length && roll > 0.82 && chance(0.6)){
-    const other = roomIx(c) === 0 ? 1 : 0;
-    const saved = c.room; c.room = other;
-    const p = randomFloorSpot(c);
-    c.room = saved;
-    headFor(c, p.x, p.y, other, 'walk');
-    return;
+    const here = roomIx(c);
+    const adj = [];
+    if (here > 0) adj.push(here - 1);
+    if (here < ROOMS.length - 1) adj.push(here + 1);
+    if (adj.length){
+      const other = pick(adj);
+      const saved = c.room; c.room = other;
+      const p = randomFloorSpot(c);
+      c.room = saved;
+      headFor(c, p.x, p.y, other, 'walk');
+      return;
+    }
   }
   /* a spell in front of the fish tank */
   if (!S.toys.length && S.tanks.length && roll > 0.70 && roll < 0.83){
@@ -2841,10 +2912,19 @@ function moveCats(dt){
       c.selfMoved = 0;
       if (c.critter && chasing) { /* the chase ends when the critter goes */ }
       if (d < (chasing ? 18 : 14)){
-        /* reached the doorway — step through into the room next door and carry on */
+        /* reached the doorway — step through into the next room and, if this isn't the
+           final room, keep going toward the door beyond */
         if (c.crossTo !== null && c.crossTo !== undefined){
           c.room = c.crossTo; c.crossTo = null;
-          c.tx = c.finalX; c.ty = c.finalY;
+          if (c.finalRoom !== undefined && c.finalRoom !== c.room){
+            const step = c.finalRoom > c.room ? 1 : -1;
+            const nextRoom = c.room + step;
+            c.crossTo = nextRoom;
+            c.tx = doorBetween(c.room, nextRoom); c.ty = doorY();
+          } else {
+            c.tx = c.finalX; c.ty = c.finalY;
+            c.finalRoom = undefined;
+          }
           c.travel = 0; c.bestD = Infinity;
           clampFloor(c);
           return;
@@ -3774,6 +3854,7 @@ function petCat(id){
   c.el.classList.remove('petted'); void c.el.offsetWidth; c.el.classList.add('petted');
   setTimeout(()=>c.el&&c.el.classList.remove('petted'), 600);
   floatCat(c,'💙'); floatCat(c,'💙',260);
+  showPurr(c);
   if (c.pets % 15 === 0) addHearts(1, c.name+' feels loved');
   refreshSpecBars();
 }
@@ -3961,8 +4042,8 @@ function openHelp(){
       '<b style="color:var(--accent)">💗 &amp; kittens.</b> Affection is earned by joining in — pet, feed, put out treats or a toy, '+
       'run the laser. At '+BREED_COST+' 💗 you can introduce two grown cats in the breeding room if you would like a kitten. '+
       'There is no hurry.<br><br>'+
-      '<b style="color:var(--accent)">🚪 Room next door.</b> Past '+ROOM_AT+' cats the café takes the room next door. '+
-      'It sits on the right — tap ‹ / › or swipe to look into either room. Cats wander between them through the doorway.<br><br>'+
+      '<b style="color:var(--accent)">🚪 More rooms.</b> Every 10 cats the café takes over another room on the right — up to '+MAX_ROOMS+' in all. '+
+      'Tap ‹ / › or swipe to look into whichever one you like. Cats wander between them through the doorway.<br><br>'+
       '<b style="color:var(--accent)">💡 Evenings.</b> From 19:00 the lamps come on: the room stays warm and easy to see all '+
       'night while the cats settle down to sleep.<br><br>'+
       '<b style="color:var(--accent)">🕒 Time.</b> One real second is one café minute — a day is 24 minutes. ⏩ runs at 3×. '+
@@ -4063,22 +4144,25 @@ function openNextRoom(){
   G.roomsOpen++;
   layout();
   const to = ROOMS.length-1;
-  /* send a good share of the cats through so the new room is not empty */
+  const theme = ROOM_THEMES[to % ROOM_THEMES.length];
+  /* send a fair share of the cats into the new room so it isn't empty */
   const movers = G.cats.filter(c=>!c.spot);
   for (let i=movers.length-1;i>0;i--){ const j=RI(0,i), t=movers[i]; movers[i]=movers[j]; movers[j]=t; }
-  movers.slice(0, Math.round(G.cats.length*0.45)).forEach(c=>{
+  const share = Math.max(1, Math.round(G.cats.length / G.roomsOpen));
+  movers.slice(0, share).forEach(c=>{
     c.room = to; c.crossTo = null; c.state='idle'; c.wait = R(0,8); c.jump = null;
     const p = randomFloorSpot(c);
     c.x = p.x; c.y = p.y; c.tx = p.x; c.ty = p.y;
     clampFloor(c); drawCat(c);
   });
-  toast('🚪 The café has taken the room next door — swipe or tap › to look in!');
+  toast('🚪 A new room opened — ' + theme.label + '! Swipe or tap › to look in.');
   setTimeout(()=>toast('🐾 Cats wander between the rooms through the doorway.'), 2600);
   save();
   return true;
 }
 function checkExpansion(){
-  if (G.cats.length > ROOM_AT && G.roomsOpen < MAX_ROOMS) openNextRoom();
+  const want = roomsWantedFor(G.cats.length);
+  while (G.roomsOpen < want){ if (!openNextRoom()) break; }
 }
 
 /* ============================================================
