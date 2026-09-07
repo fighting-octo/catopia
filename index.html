@@ -2402,9 +2402,9 @@ function goSleep(c){
   let sp = null;
   const quietest = list => list.reduce((a,b)=>
     crowdAt(b.x, b.groundY, b.room, c) < crowdAt(a.x, a.groundY, a.room, c) ? b : a);
-  if (has(c,'acrobat') && high.length && chance(.92))        sp = quietest(high);
-  else if (high.length && chance(.62))                       sp = quietest(high);   /* up a tree */
-  else if (beds.length && chance(.8))                        sp = quietest(beds);
+  if (has(c,'acrobat') && high.length && chance(.96))        sp = quietest(high);
+  else if (high.length && chance(.78))                       sp = quietest(high);   /* up a tree */
+  else if (beds.length && chance(.7))                        sp = quietest(beds);
   else if (high.length && !isKitten(c))                      sp = quietest(high);
   else if (beds.length)                                      sp = quietest(beds);
   if (sp){ claimSpot(c, sp, 'sleep'); return; }
@@ -2609,8 +2609,8 @@ function decide(c){
      crowded, boost the odds each newly-deciding cat picks a perch instead. */
   const onStructure = G.cats.reduce((n,o)=>n + (o.spot && (o.state==='sleep' || o.state==='lounge') ? 1 : 0), 0);
   const floorShare  = (G.cats.length - onStructure) / Math.max(1, G.cats.length);
-  const balanceBoost = Math.max(0, (floorShare - 0.5) * 0.9);   /* 0 at 50/50, up to +0.45 when floor-heavy */
-  const loungeChance = (has(c,'acrobat') ? 0.55 : 0.32) + balanceBoost;
+  const balanceBoost = Math.max(0, (floorShare - 0.45) * 1.2);   /* 0 at 55%+ up on structures, more the further off */
+  const loungeChance = (has(c,'acrobat') ? 0.72 : 0.5) + balanceBoost;
   if (!S.toys.length && roll < loungeChance && goLounge(c)) return;
   /* a good scratch on one of the posts */
   if (!S.toys.length && roll > 0.83 && roll < 0.95 && goScratch(c)) return;
@@ -4130,10 +4130,19 @@ function init(){
       return coat;
     };
     /* four named regulars everyone starts with, each with a locked-in coat */
-    G.cats.push(makeCat(G, {name:'Edda',         gender:'F', coat: takeCoat('Silver Tabby')}));
-    G.cats.push(makeCat(G, {name:'Oskar',        gender:'M', coat: takeCoat('Norwegian Forest')}));
-    G.cats.push(makeCat(G, {name:'Theodore',     gender:'M',
-                            coat: Object.assign(takeCoat('Grey & White'), {fluff:true})}));
+    G.cats.push(makeCat(G, {name:'Edda', gender:'F',
+                            coat: Object.assign(takeCoat('Grey & White'), {
+                              base:'#8b929a', light:'#adb4bb', belly:'#eef0f0'    /* mid grey with a white belly */
+                            })}));
+    G.cats.push(makeCat(G, {name:'Oskar', gender:'M', coat: takeCoat('Norwegian Forest')}));
+    G.cats.push(makeCat(G, {name:'Theodore', gender:'M', coat: (() => {
+      const c = takeCoat('Silver Tabby');
+      /* keep the fluff, drop the stripes, darken the grey and add a white belly */
+      return Object.assign(c, {
+        breed:'Grey & White', base:'#3f4348', light:'#5a606a', belly:'#eaecec',
+        ear:'#c9948a', eye:'#c8a032', fluff:true, stripes:null
+      });
+    })()}));
     G.cats.push(makeCat(G, {name:'Teddy Jerome', gender:'M', coat: takeCoat('Bombay'),
                             born: G.t, newborn: true}));
     /* fill the rest with random cats */
