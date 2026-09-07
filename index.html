@@ -4049,9 +4049,30 @@ function placeCat(c){
     c.tx = q.x; c.ty = q.y; c.state = 'walk';
   }
 }
+/* On a fresh café, drop about half the adult cats straight onto free perches so
+   the room reads as calm from the first frame instead of a mob on the floor. */
+function seedPerches(){
+  const shuffle = arr => { for (let i=arr.length-1;i>0;i--){ const j=RI(0,i); const t=arr[i]; arr[i]=arr[j]; arr[j]=t; } };
+  const perches = S.spots.filter(s => s.kind === 'perch' && !s.taken);
+  shuffle(perches);
+  const candidates = G.cats.filter(c => !isKitten(c));
+  shuffle(candidates);
+  const target = Math.min(perches.length, Math.floor(G.cats.length * 0.5));
+  for (let i=0; i<target && perches.length && i<candidates.length; i++){
+    const c = candidates[i];
+    const sp = perches.pop();
+    sp.taken = c.id;
+    c.spot = sp; c.spotMode = chance(.5) ? 'sleep' : 'lounge';
+    c.x = sp.x; c.y = sp.y; c.tx = sp.x; c.ty = sp.y;
+    c.state = c.spotMode;
+    c.wait = c.spotMode === 'sleep' ? R(30, 130) : R(15, 55);
+    if (c.spotMode === 'sleep' && c.el) c.el.classList.add('asleep');
+  }
+}
 function init(){
   layout();
-  if (!load()){
+  const fresh = !load();
+  if (fresh){
     /* the founding ten: every cat a different coat */
     const pool = COATS.slice();
     const takeCoat = breed => {
@@ -4075,6 +4096,7 @@ function init(){
   }
   layout();                       /* the save may have a second room open */
   G.cats.forEach(c=>{ placeCat(c); mountCat(c); });
+  if (fresh) seedPerches();       /* start with about half the café already up on the shelves */
   layout();
   checkExpansion();
   assignHomes();
