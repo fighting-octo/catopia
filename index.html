@@ -29,6 +29,7 @@ body{
   height:100dvh;                      /* keeps the bar clear of mobile browser chrome */
   user-select:none; -webkit-user-select:none;
   overscroll-behavior:none; touch-action:manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ---------- top bar ---------- */
@@ -539,7 +540,10 @@ body.touch .room-nav{width:48px; height:48px; font-size:1.7rem}
   position:absolute; left:0; top:0; z-index:20;
   transform-origin:bottom center; cursor:pointer;
   transition:filter .2s;
+  will-change: transform;            /* keep cats on their own GPU compositing layer */
+  contain: layout paint;             /* isolate re-renders */
 }
+.toy, .critter{ will-change: transform }
 .cat .cat-inner{position:relative; transition:transform .35s ease-out}
 
 .cat:hover{filter:drop-shadow(0 0 8px rgba(232,182,97,.55))}
@@ -867,7 +871,7 @@ button.gender:hover{border-color:currentColor}
 .newborn .nb-art{animation:nbPop .7s cubic-bezier(.2,1.5,.4,1)}
 @keyframes nbPop{0%{transform:scale(.2); opacity:0} 100%{transform:scale(1); opacity:1}}
 .field{
-  width:100%; padding:11px 14px; border-radius:11px; font-size:.95rem; font-family:inherit;
+  width:100%; padding:11px 14px; border-radius:11px; font-size:16px; font-family:inherit;
   background:rgba(255,255,255,.06); border:1px solid rgba(232,182,97,.28); color:var(--ink); outline:none;
 }
 .field:focus{border-color:var(--accent)}
