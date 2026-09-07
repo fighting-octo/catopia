@@ -3898,8 +3898,61 @@ function petCat(id){
   setTimeout(()=>c.el&&c.el.classList.remove('petted'), 600);
   floatCat(c,'💙'); floatCat(c,'💙',260);
   showCardPurr(c);
+  playPurr();
   if (c.pets % 15 === 0) addHearts(1, c.name+' feels loved');
   refreshSpecBars();
+}
+/* Synthesised cat purr — sawtooth rumble around 27 Hz, amplitude-modulated by
+   an LFO at ~5.5 Hz for the pulsed brrrr brrrr, softened by a lowpass, layered
+   with a little filtered noise for texture. Built inside the click gesture so
+   browsers keep autoplay policies happy. */
+let _audioCtx = null;
+function _audio(){
+  if (_audioCtx) return _audioCtx;
+  try { _audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ return null; }
+  return _audioCtx;
+}
+function playPurr(){
+  const ctx = _audio(); if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+  const now = ctx.currentTime, dur = 1.9;
+
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, now);
+  master.gain.exponentialRampToValueAtTime(0.22, now + 0.14);
+  master.gain.setValueAtTime(0.22, now + dur - 0.4);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+  master.connect(ctx.destination);
+
+  const lp = ctx.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.value = 260; lp.Q.value = 0.9;
+  lp.connect(master);
+
+  const carrier = ctx.createOscillator();
+  carrier.type = 'sawtooth'; carrier.frequency.value = 27;
+  const carrierGain = ctx.createGain();
+  carrierGain.gain.setValueAtTime(0.42, now);
+  carrier.connect(carrierGain).connect(lp);
+
+  const lfo = ctx.createOscillator();
+  lfo.type = 'sine'; lfo.frequency.value = 5.4;
+  const lfoAmp = ctx.createGain();
+  lfoAmp.gain.value = 0.32;
+  lfo.connect(lfoAmp).connect(carrierGain.gain);
+
+  const noiseBuf = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * dur), ctx.sampleRate);
+  const data = noiseBuf.getChannelData(0);
+  for (let i=0; i<data.length; i++) data[i] = (Math.random()*2 - 1) * 0.5;
+  const noise = ctx.createBufferSource(); noise.buffer = noiseBuf;
+  const noiseFilt = ctx.createBiquadFilter();
+  noiseFilt.type = 'lowpass'; noiseFilt.frequency.value = 320;
+  const noiseGain = ctx.createGain(); noiseGain.gain.setValueAtTime(0.24, now);
+  noise.connect(noiseFilt).connect(noiseGain).connect(lp);
+  lfoAmp.connect(noiseGain.gain);   /* same LFO pulses the noise too */
+
+  carrier.start(now); noise.start(now); lfo.start(now);
+  const stopAt = now + dur;
+  carrier.stop(stopAt); noise.stop(stopAt); lfo.stop(stopAt);
 }
 /* Purr feedback on the cat card: the portrait sways happily and a little brrrrr
    bubble appears beside it — you don't see the world cat while the card is open. */
