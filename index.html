@@ -1190,7 +1190,7 @@ function breedCats(a, b){
    ============================================================ */
 const SAVE_KEY = 'catopia.cafe.v2';
 const OLD_SAVE_KEYS = [];
-const START_CATS = 10;
+const START_CATS = 7;
 const MAX_CATS = 24;
 const BREED_COST = 12;
 
@@ -1222,7 +1222,7 @@ const cafe = $('cafe');
 
 /* these must match the clip-paths in the CSS */
 const ROOM = {top:0.04, backY:0.58, backL:0.15, backR:0.85, frontY:0.985};
-const MAX_ROOMS = 2, ROOM_AT = 15;          /* a 16th cat opens the room next door */
+const MAX_ROOMS = 2, ROOM_AT = 9;           /* a 10th cat opens the room next door */
 const DOOR_T0 = 0.02, DOOR_T1 = 0.62;       /* the passage spans this depth band     */
 const ROOMS = [];                            /* {i,x0,x1,backL,backR} in page pixels  */
 
@@ -4082,10 +4082,11 @@ function init(){
       if (!breed && chance(.3)) coat.eye = pick(EYES);
       return coat;
     };
-    /* four named regulars everyone starts with */
-    G.cats.push(makeCat(G, {name:'Oskar',        gender:'M', coat: takeCoat()}));
-    G.cats.push(makeCat(G, {name:'Edda',         gender:'F', coat: takeCoat()}));
-    G.cats.push(makeCat(G, {name:'Theodore',     gender:'M', coat: takeCoat()}));
+    /* four named regulars everyone starts with, each with a locked-in coat */
+    G.cats.push(makeCat(G, {name:'Edda',         gender:'F', coat: takeCoat('Silver Tabby')}));
+    G.cats.push(makeCat(G, {name:'Oskar',        gender:'M', coat: takeCoat('Norwegian Forest')}));
+    G.cats.push(makeCat(G, {name:'Theodore',     gender:'M',
+                            coat: Object.assign(takeCoat('Grey & White'), {fluff:true})}));
     G.cats.push(makeCat(G, {name:'Teddy Jerome', gender:'M', coat: takeCoat('Bombay'),
                             born: G.t, newborn: true}));
     /* fill the rest with random cats */
