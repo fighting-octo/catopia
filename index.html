@@ -775,7 +775,37 @@ body.touch .room-nav{width:48px; height:48px; font-size:1.7rem}
   flex:0 0 auto; width:190px; height:150px; border-radius:14px; display:flex; align-items:center; justify-content:center;
   background:radial-gradient(ellipse at 50% 80%, rgba(232,182,97,.16), rgba(255,255,255,.02) 70%);
   border:1px solid rgba(232,182,97,.14);
+  position:relative; overflow:visible;
 }
+.spec-portrait.purring svg{ animation: portraitPurr .48s ease-in-out infinite; transform-origin: center bottom; }
+@keyframes portraitPurr{
+  0%,100%{transform:translateY(0) rotate(0)} 25%{transform:translateY(-1.5px) rotate(-1.6deg)}
+  75%{transform:translateY(-1.5px) rotate(1.6deg)}
+}
+.card-purr{
+  position:absolute; top:10px; right:10px;
+  padding:4px 10px; background:rgba(232,182,97,.18); color:#f4e6d6;
+  border:1.5px solid rgba(232,182,97,.55); border-radius:14px;
+  font-size:.7rem; letter-spacing:.6px; white-space:nowrap;
+  animation: cardPurrIn .28s ease-out both, cardPurrPulse .38s ease-in-out infinite;
+  pointer-events:none;
+}
+.card-purr-heart{margin-left:5px; display:inline-block; animation: cardHeartBeat .58s ease-in-out infinite}
+@keyframes cardPurrIn{from{opacity:0; transform:translateY(6px) scale(.85)} to{opacity:1; transform:translateY(0) scale(1)}}
+@keyframes cardPurrPulse{0%,100%{letter-spacing:.6px; opacity:1} 50%{letter-spacing:1.4px; opacity:.68}}
+@keyframes cardHeartBeat{0%,100%{transform:scale(1)} 50%{transform:scale(1.28)}}
+/* the breeding certificate shown on the cat card */
+.cert{
+  display:flex; gap:12px; align-items:center;
+  padding:11px 13px; margin-top:2px;
+  background:linear-gradient(180deg, rgba(232,182,97,.10), rgba(232,182,97,.04));
+  border:1.5px dashed rgba(232,182,97,.45); border-radius:11px;
+}
+.cert-seal{font-size:1.8rem; line-height:1; flex:0 0 auto}
+.cert-body{flex:1 1 auto; min-width:0}
+.cert-title{font-weight:600; color:var(--accent); font-size:.66rem; letter-spacing:1.5px; text-transform:uppercase; margin-bottom:4px}
+.cert-info{font-size:.78rem; color:var(--ink); line-height:1.5}
+.cert-info b{color:var(--accent); font-weight:600}
 .spec-id{flex:1 1 210px; min-width:200px}
 .spec-name{display:flex; align-items:center; gap:9px; font-size:1.35rem; font-weight:600; color:var(--ink)}
 .gender{font-size:1rem; padding:2px 8px; border-radius:9px}
@@ -1214,6 +1244,7 @@ function breedCats(a, b){
   if (chance(.8)) set.add(pick(b.perks));
   if (chance(.3)) set.add(pick(PERK_KEYS));
   const kit = makeCat(G, {coat, perks:[...set], born:G.t, newborn:true, parents:[mum.name, dad.name]});
+  kit.bredOn = day();
   /* traits inherit as parent average ±2 */
   ['appetite','playful','agility','charm'].forEach(t=>{
     kit.traits[t] = clamp(Math.round((a.traits[t]+b.traits[t])/2 + RI(-2,2)),1,10);
@@ -1241,6 +1272,7 @@ const G = {
   totalKittens: 0,
   roomsOpen: 1,
   viewRoom: 0,         // which room the viewer is looking at
+  lastBreeder: '',     // remembered breeder name so the certificate input auto-fills
   savedAt: Date.now()
 };
 const S = {W:0,H:0,backY:0,frontY:0,backL:0,backR:0,floorTop:0,floorBot:0,
@@ -3824,6 +3856,17 @@ function openSpec(id){
         '<div class="trait">Charm'+pips(c.traits.charm)+'</div>'+
         '<div class="trait">Restlessness'+pips(Math.max(1,Math.round((c.temper===undefined?0.6:c.temper)*10)))+'</div>'+
       '</div></div>'+
+      (c.parents ?
+        '<div class="sect"><div class="sect-h">Breeding certificate</div>'+
+          '<div class="cert">'+
+            '<div class="cert-seal">🎓</div>'+
+            '<div class="cert-body">'+
+              '<div class="cert-title">Certificate of Birth</div>'+
+              '<div class="cert-info">Bred by <b>'+(c.breeder||'the café')+'</b>'+(c.bredOn?' · Day '+c.bredOn:'')+'</div>'+
+              '<div class="cert-info">Parents: '+c.parents[0]+' × '+c.parents[1]+'</div>'+
+            '</div>'+
+          '</div>'+
+        '</div>' : '')+
     '</div>'+
     '<div class="m-foot">'+
       '<button class="act primary" onclick="petCat(\''+c.id+'\')">🤚 Pet</button>'+
@@ -3854,9 +3897,24 @@ function petCat(id){
   c.el.classList.remove('petted'); void c.el.offsetWidth; c.el.classList.add('petted');
   setTimeout(()=>c.el&&c.el.classList.remove('petted'), 600);
   floatCat(c,'💙'); floatCat(c,'💙',260);
-  showPurr(c);
+  showCardPurr(c);
   if (c.pets % 15 === 0) addHearts(1, c.name+' feels loved');
   refreshSpecBars();
+}
+/* Purr feedback on the cat card: the portrait sways happily and a little brrrrr
+   bubble appears beside it — you don't see the world cat while the card is open. */
+function showCardPurr(c){
+  if (!c || S.specOpenId !== c.id) return;
+  const portrait = document.querySelector('#specModal .spec-portrait');
+  if (!portrait) return;
+  portrait.classList.remove('purring'); void portrait.offsetWidth;
+  portrait.classList.add('purring');
+  const old = portrait.querySelector('.card-purr'); if (old) old.remove();
+  const p = document.createElement('div');
+  p.className = 'card-purr';
+  p.innerHTML = 'brrrrr brrrrr brrrr <span class="card-purr-heart">💗</span>';
+  portrait.appendChild(p);
+  setTimeout(()=>{ portrait.classList.remove('purring'); if (p.parentNode) p.remove(); }, 1900);
 }
 function playWith(id){
   const c = G.cats.find(x=>x.id===id); if (!c) return;
@@ -3999,21 +4057,28 @@ function doBreed(){
       '<div class="nb-art">'+catSVG(kit,150)+'</div>'+
       '<p class="note" style="margin:12px 0">'+a.name+' × '+b.name+' → a '+(kit.gender==='F'?'girl':'boy')+' · '+kit.coat.breed+'</p>'+
       '<div class="chips" style="justify-content:center">'+kit.perks.map(p=>'<div class="chip" title="'+PERKS[p].d+'">'+PERKS[p].i+' '+PERKS[p].n+'</div>').join('')+'</div>'+
-      '<div style="max-width:280px;margin:18px auto 0">'+
+      '<div style="max-width:300px;margin:18px auto 0">'+
         '<div class="sect-h">Name your kitten</div>'+
-        '<input id="kitName" class="field" value="'+kit.name+'" maxlength="18"/></div>'+
+        '<input id="kitName" class="field" value="'+kit.name+'" maxlength="18"/>'+
+        '<div class="sect-h" style="margin-top:14px">Breeder — your name for the certificate</div>'+
+        '<input id="kitBreeder" class="field" placeholder="e.g. Alex" maxlength="24" value="'+(G.lastBreeder||'')+'"/>'+
+      '</div>'+
     '</div>'+
-    '<div class="m-foot"><button class="act meal" style="margin:0 auto" onclick="nameKitten(\''+kit.id+'\')">Welcome to the café 🐾</button></div>';
+    '<div class="m-foot"><button class="act meal" style="margin:0 auto" onclick="nameKitten(\''+kit.id+'\')">🎓 Sign the certificate 🐾</button></div>';
   setTimeout(()=>{ const i=$('kitName'); if(i){i.focus();i.select();} }, 60);
   floatCat(kit,'✨'); floatCat(kit,'🎉',260);
   toast('🎉 '+a.name+' and '+b.name+' have a kitten!','reward');
   updateTopbar(); save();
 }
 function nameKitten(id){
-  const c = G.cats.find(x=>x.id===id); const inp = $('kitName');
+  const c = G.cats.find(x=>x.id===id); const inp = $('kitName'), br = $('kitBreeder');
   if (c && inp && inp.value.trim()) c.name = inp.value.trim().slice(0,18);
+  if (c && br && br.value.trim()){
+    c.breeder = br.value.trim().slice(0,24);
+    G.lastBreeder = c.breeder;                    /* remember for next time */
+  }
   redrawCat(c); closeAll(); save();
-  toast('🐾 Welcome, '+c.name+'!');
+  toast('🎓 Certificate signed. Welcome, '+c.name+'!');
 }
 
 /* ============================================================
@@ -4071,10 +4136,11 @@ function save(){
   try{
     const data = {
       v:1, t:G.t, hearts:G.hearts, speed:G.speed, roomsOpen:G.roomsOpen, viewRoom:G.viewRoom, namesChecked:true,
-      lastDay:G.lastDay, totalKittens:G.totalKittens, uid:UID, savedAt:Date.now(),
+      lastDay:G.lastDay, totalKittens:G.totalKittens, uid:UID, lastBreeder:G.lastBreeder, savedAt:Date.now(),
       cats:G.cats.map(c=>({
         id:c.id,name:c.name,gender:c.gender,coat:c.coat,perks:c.perks,born:c.born,
-        parents:c.parents,traits:c.traits,temper:c.temper,pace:c.pace,room:c.room,
+        parents:c.parents,breeder:c.breeder,bredOn:c.bredOn,
+        traits:c.traits,temper:c.temper,pace:c.pace,room:c.room,
         hunger:c.hunger,happy:c.happy,energy:c.energy,bond:c.bond,
         meals:c.meals,pets:c.pets,plays:c.plays
       }))
@@ -4092,6 +4158,7 @@ function load(){
   if (!d || !d.cats || !d.cats.length) return false;
   G.t = d.t; G.hearts = d.hearts||0; G.speed = d.speed||1;
   G.lastDay = d.lastDay||day(); G.totalKittens = d.totalKittens||0; UID = d.uid||100;
+  G.lastBreeder = d.lastBreeder || '';
   G.roomsOpen = clamp(d.roomsOpen||1, 1, MAX_ROOMS);
   G.viewRoom  = clamp(d.viewRoom||0, 0, MAX_ROOMS-1);
   G.namesChecked = !!d.namesChecked;
