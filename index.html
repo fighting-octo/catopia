@@ -3899,6 +3899,7 @@ function petCat(id){
   floatCat(c,'💙'); floatCat(c,'💙',260);
   showCardPurr(c);
   playPurr();
+  if (chance(0.28)) setTimeout(playMeow, 230);   /* an occasional little meow */
   if (c.pets % 15 === 0) addHearts(1, c.name+' feels loved');
   refreshSpecBars();
 }
@@ -3953,6 +3954,46 @@ function playPurr(){
   carrier.start(now); noise.start(now); lfo.start(now);
   const stopAt = now + dur;
   carrier.stop(stopAt); noise.stop(stopAt); lfo.stop(stopAt);
+}
+/* A short meow: sawtooth carrier with a pitch envelope that rises into an open
+   "ea" vowel and drops to a rounded "ow", shaped by two bandpass filters roughly
+   where a cat's first two vocal formants sit, with gentle vibrato on top. */
+function playMeow(){
+  const ctx = _audio(); if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+  const now = ctx.currentTime, dur = 0.72;
+
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0.0001, now);
+  master.gain.exponentialRampToValueAtTime(0.16, now + 0.08);
+  master.gain.setValueAtTime(0.16, now + dur - 0.28);
+  master.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+  master.connect(ctx.destination);
+
+  const f1 = ctx.createBiquadFilter();
+  f1.type = 'bandpass'; f1.frequency.value = 780; f1.Q.value = 3.2;
+  f1.connect(master);
+  const f2 = ctx.createBiquadFilter();
+  f2.type = 'bandpass'; f2.frequency.value = 1400; f2.Q.value = 4.0;
+  f2.connect(master);
+
+  const osc = ctx.createOscillator();
+  osc.type = 'sawtooth';
+  osc.frequency.setValueAtTime(440, now);
+  osc.frequency.linearRampToValueAtTime(680, now + 0.12);        /* rising into "ea" */
+  osc.frequency.linearRampToValueAtTime(600, now + 0.32);        /* held middle */
+  osc.frequency.linearRampToValueAtTime(360, now + dur - 0.06);  /* falls into "ow" */
+
+  const vib = ctx.createOscillator();
+  vib.type = 'sine'; vib.frequency.value = 6.2;
+  const vibGain = ctx.createGain(); vibGain.gain.value = 10;
+  vib.connect(vibGain).connect(osc.frequency);
+
+  osc.connect(f1); osc.connect(f2);
+
+  osc.start(now); vib.start(now);
+  const stopAt = now + dur;
+  osc.stop(stopAt); vib.stop(stopAt);
 }
 /* Purr feedback on the cat card: the portrait sways happily and a little brrrrr
    bubble appears beside it — you don't see the world cat while the card is open. */
