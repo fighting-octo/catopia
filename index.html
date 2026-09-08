@@ -3322,8 +3322,9 @@ function advanceClock(){
    11. FOOD & TREATS
    ============================================================ */
 const FOODS = {
-  meal:  {icon:'🍽', name:'Food',  note:'A proper meal — food goes in the diner', fill:32, happy:7,  bond:2, meal:true,  cool:35, css:'food-wet'},
-  treat: {icon:'🐟', name:'Treat', note:'Barely food. Utterly worth it.',         fill:9,  happy:16, bond:5, meal:false, cool:12, css:'food-treat'}
+  /* one meal fills half the fullness bar, so a hungry cat needs two feeds to be full */
+  meal:  {icon:'🍽', name:'Food',  note:'A proper meal — half a fullness bar', fill:50, happy:7,  bond:2, meal:true,  cool:35, css:'food-wet'},
+  treat: {icon:'🐟', name:'Treat', note:'Barely food. Utterly worth it.',     fill:9,  happy:16, bond:5, meal:false, cool:12, css:'food-treat'}
 };
 
 /* --- the little bowl next to a cat --- */
@@ -4398,9 +4399,13 @@ function init(){
     })()}));
     G.cats.push(makeCat(G, {name:'Teddy Jerome', gender:'M', coat: takeCoat('Bombay'),
                             born: G.t, newborn: true}));
-    /* fill the rest with random cats */
+    /* fill the rest with random cats — keep the male/female mix balanced by picking
+       the underrepresented gender each time (ties broken by a coin flip). */
     for (let i=G.cats.length;i<START_CATS;i++){
-      G.cats.push(makeCat(G, {coat: takeCoat()}));
+      const nF = G.cats.filter(c=>c.gender==='F').length;
+      const nM = G.cats.filter(c=>c.gender==='M').length;
+      const g = nF < nM ? 'F' : nM < nF ? 'M' : (chance(.5) ? 'F' : 'M');
+      G.cats.push(makeCat(G, {coat: takeCoat(), gender: g}));
     }
     G.t = 8*60; G.lastDay = 1;
   }
