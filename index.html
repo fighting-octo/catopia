@@ -2534,11 +2534,13 @@ function releaseBowl(c){
 }
 function wantsFood(c){ return c.hunger < 82 && (G.t - (c.fedAt||-9999)) > 45; }
 function freeBowl(c){
-  const all = S.bowls.filter(b=>b.food>0 && (!b.taken || b.taken===c.id));
-  if (!all.length) return null;
-  const mine = all.filter(b=>b.room === undefined || b.room === roomIx(c));
-  const opts = mine.length ? mine : all;
-  /* the quietest bowl within reach, so mealtimes don't turn into a huddle */
+  /* only pick bowls in the cat's own room — otherwise everyone converges on
+     room 0 whenever their local bowls are busy, which reads as a stampede. */
+  const opts = S.bowls.filter(b=>
+    b.food>0 && (!b.taken || b.taken===c.id) &&
+    (b.room === undefined || b.room === roomIx(c))
+  );
+  if (!opts.length) return null;
   let best = opts[0], bestScore = Infinity;
   opts.forEach(b=>{
     const s = crowdAt(b.x, b.y, b.room===undefined ? roomIx(c) : b.room, c)
