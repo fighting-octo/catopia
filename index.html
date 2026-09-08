@@ -3158,6 +3158,7 @@ function startEating(c){
     const portion = F ? F.fill*appetite
                       : ((has(c,'picky') ? 16 : has(c,'glutton') ? 34 : 26) + c.traits.appetite);
     c.hunger = clamp(c.hunger + portion, 0, 100);
+    if (F && F.energy) c.energy = clamp(c.energy + F.energy, 0, 100);
     c.happy  = clamp(c.happy + (F ? (treat && has(c,'gourmet') ? F.happy*2 : F.happy)
                                   : (treat ? (has(c,'gourmet')?18:9) : 6)), 0, 100);
     c.bond   = clamp(c.bond + (F ? F.bond : (treat?3:1.5)), 0, 100);
@@ -3326,9 +3327,9 @@ function advanceClock(){
    11. FOOD & TREATS
    ============================================================ */
 const FOODS = {
-  /* one meal fills half the fullness bar, so a hungry cat needs two feeds to be full */
-  meal:  {icon:'🍽', name:'Food',  note:'A proper meal — half a fullness bar', fill:50, happy:7,  bond:2, meal:true,  cool:35, css:'food-wet'},
-  treat: {icon:'🐟', name:'Treat', note:'Barely food. Utterly worth it.',     fill:9,  happy:16, bond:5, meal:false, cool:12, css:'food-treat'}
+  /* one meal adds +25 fullness and +25 energy, so four feeds fill either bar */
+  meal:  {icon:'🍽', name:'Food',  note:'A meal — +25% fullness and energy',   fill:25, energy:25, happy:7,  bond:2, meal:true,  cool:35, css:'food-wet'},
+  treat: {icon:'🐟', name:'Treat', note:'Barely food. Utterly worth it.',       fill:9,  energy:0,  happy:16, bond:5, meal:false, cool:12, css:'food-treat'}
 };
 
 /* --- the little bowl next to a cat --- */
@@ -3373,6 +3374,11 @@ function handFeed(id, kind){
   c.el.classList.remove('eating');
   c.nibble = null;
   c.mission = true;
+  /* clear anything that could stall the walk over to the bowl */
+  c.hold = 0; c.blocked = 0; c.blockRuns = 0;
+  c.yielding = false; c.resume = null;
+  c.finalRoom = undefined; c.crossTo = null;
+  c.travel = 0; c.bestD = Infinity;
 
   /* the food goes into a bowl in the diner — the cat walks over to it */
   const mine = x => !x.personal && !x.taken && (x.room === undefined || x.room === roomIx(c));
