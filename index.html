@@ -2552,7 +2552,11 @@ function freeBowl(c){
 function headOffset(b){ return 34*depthScale(b.y); }
 function aimAtBowl(c, b){
   c.eatSide = (c.x >= b.x) ? 1 : -1;                 /* 1 = stand to the right of it */
-  c.tx = clamp(b.x + c.eatSide*headOffset(b), 30, S.W-30);
+  /* clamp to the bowl's room, not the viewport — otherwise bowls in later rooms
+     get clamped back into room 0 and the cat walks the wrong way. */
+  const bRoom = b.room !== undefined ? b.room : roomIx(c);
+  const [ra, rb] = roomBounds(b.y, bRoom);
+  c.tx = clamp(b.x + c.eatSide*headOffset(b), ra+8, rb-8);
   c.ty = clamp(b.y - 3, S.backY+6, S.frontY);
 }
 function goEat(c){
