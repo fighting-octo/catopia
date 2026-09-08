@@ -2994,7 +2994,11 @@ function moveCats(dt){
         const want = Math.min(maxS, 9 + d*2.3);                 /* ease in, ease out */
         const ux0 = dx/d, uy0 = dy/d;
 
-        /* --- look where you are going: steer around whoever is in the way --- */
+        /* --- look where you are going: steer around whoever is in the way ---
+           React earlier (220px range instead of 170) and lean harder into the
+           sidestep so cats actually curve around each other before they have to
+           brake. Brake only when someone is genuinely dead-ahead (ahead > 0.7)
+           and within 70px, and never below 0.2 so nobody dead-stops mid-stride. */
         let ax = 0, ay = 0, brake = 1;
         const ri = roomIx(c);
         for (let k=0;k<G.cats.length;k++){
@@ -3004,16 +3008,19 @@ function moveCats(dt){
           if (o.spot && (o.state==='sleep' || o.state==='lounge') && o.spot.elevated) continue;
           const ox = o.x - c.x, oy = (o.y - c.y)*2.1;           /* depth counts double */
           const dist = Math.hypot(ox, oy);
-          if (dist < 0.01 || dist > 170) continue;
+          if (dist < 0.01 || dist > 220) continue;
           const ahead = (ox*ux0 + oy*uy0)/dist;                 /* 1 = straight in front */
-          if (ahead < 0.2) continue;                            /* behind or beside: ignore */
-          const near = 1 - dist/170;
-          const w = near*near*(0.35 + 0.65*ahead);
+          if (ahead < 0.15) continue;                           /* behind or beside: ignore */
+          const near = 1 - dist/220;
+          const w = near*(0.4 + 0.6*ahead);                     /* linear falloff, stronger up close */
           const px = -uy0, py = ux0;                            /* sidestep, away from them */
           const side = (ox*px + oy*py) > 0 ? -1 : 1;
           ax += px*side*w; ay += py*side*w*0.45;
-          if (dist < 98 && ahead > 0.55) brake = Math.min(brake, clamp(dist/98, 0.10, 1));
+          if (dist < 70 && ahead > 0.7) brake = Math.min(brake, clamp(dist/70, 0.2, 1));
         }
+        /* steering influence into the direction of travel — a bigger multiplier
+           means the cat visibly curves around rather than plodding straight in */
+        const steer = 2.4;
         /* if somebody really is in the way, stop and let them pass */
         if (brake < 0.30){
           c.blocked = (c.blocked||0) + dt;
@@ -3038,7 +3045,7 @@ function moveCats(dt){
         /* a lazy drift so nobody walks a perfectly straight line */
         c.wob = (c.wob===undefined ? Math.random()*6 : c.wob) + dt*1.7;
         const curve = Math.sin(c.wob) * (running ? 0.05 : 0.15) * Math.min(1, d/170);
-        const ux = ux0 - uy0*curve + ax*1.6, uy = uy0 + ux0*curve + ay*1.6;
+        const ux = ux0 - uy0*curve + ax*steer, uy = uy0 + ux0*curve + ay*steer;
         const ul = Math.hypot(ux,uy) || 1;
         const mx = (ux/ul)*c.spd*dt, my = (uy/ul)*c.spd*dt;
         c.x += mx; c.y += my;
@@ -3094,10 +3101,12 @@ function moveCats(dt){
                             c.state==='drinking' || c.state==='litter' ||
                             c.state==='walk' || c.state==='toBowl' || c.state==='toSpot')) ? 'rest' : 'none';
 
-    /* a mode has to hold for a moment before it is applied — no single-frame flips */
+    /* a mode has to hold for a moment before it is applied — no single-frame flips.
+       Long rest debounce (350ms) means brief stops from sidestepping past another
+       cat don't switch the animation to rest, which was the blink. */
     if (want !== c.gaitWant){ c.gaitWant = want; c.gaitFor = 0; }
     else c.gaitFor = (c.gaitFor||0) + dt;
-    const settled = c.gaitFor > (want === 'rest' ? 0.20 : 0.10);
+    const settled = c.gaitFor > (want === 'rest' ? 0.35 : 0.12);
     if (c.gaitMode === undefined) c.gaitMode = 'none';
     if (want !== c.gaitMode && settled){
       c.gaitMode = want;
