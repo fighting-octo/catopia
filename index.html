@@ -959,7 +959,7 @@ body.touch .feed-btn{width:32px; height:32px; font-size:16px; border-color:rgba(
 </div>
 
 <div id="actions">
-  <button class="act meal" id="feedBtn">🍽 <span id="feedLbl">Serve Breakfast</span></button>
+  <button class="act meal" id="feedBtn">🍽 <span id="feedLbl">Feed all cats</span></button>
   <button class="act" id="treatBtn">🐟 Treat <span class="cd" id="treatCd"></span></button>
   <button class="act primary" id="ballBtn">⚽ Ball</button>
   <button class="act primary" id="mouseBtn">🐭 Mouse Toy</button>
@@ -3454,15 +3454,31 @@ function tendBowls(dtReal){
 }
 
 function serveMeal(){
-  const per = Math.ceil(G.cats.length/5)+2;
+  /* fill every bowl in every open room, then send every cat to a bowl in its own
+     room. Sleepers wake, loungers come down, whoever was scratching or watching
+     the fish stops and heads for the diner. */
+  const per = Math.ceil(G.cats.length/Math.max(1, ROOMS.length)/5)+2;
   S.bowls.filter(b=>!b.personal).forEach(b=>{
     b.food = Math.max(b.food, per); b.treat=false; b.kind='meal'; b.taken=null;
     b.el.classList.add('full'); b.el.classList.remove('bowl-treat','food-wet','food-dry','food-treat');
   });
-  toast('🍽 Fresh food in every bowl.');
+  toast('🍽 Everyone to the bowls!');
   G.cats.forEach(c=>{
-    if (c.state==='sleep' && c.hunger < 72 && chance(.5)) wake(c, true);
-    if (c.state!=='eat' && c.state!=='toBowl' && wantsFood(c)) setTimeout(()=>{ if(c.state!=='eat') goEat(c); }, R(0,2400));
+    if (c.state==='eat') return;                                /* already eating */
+    if (c.state==='sleep' || c.state==='lounge') wake(c, true); /* rouse sleepers */
+    if (c.spot) leaveSpot(c);
+    /* stop whatever else they were doing so the walk to the bowl is unambiguous */
+    c.hold = 0; c.blocked = 0; c.blockRuns = 0;
+    c.yielding = false; c.resume = null;
+    c.finalRoom = undefined; c.crossTo = null;
+    c.travel = 0; c.bestD = Infinity;
+    c.nibble = null; c.watch = null; c.watchAt = null;
+    c.scratch = null; c.scratchAt = null;
+    c.drink = null; c.drinkAt = null;
+    c.litter = null; c.litterAt = null;
+    c.critter = null;
+    /* stagger so the whole café doesn't move in lockstep */
+    setTimeout(()=>{ if (c.state !== 'eat' && c.state !== 'toBowl') goEat(c); }, R(0, 2200));
   });
   updateTopbar(); save();
 }
@@ -3821,7 +3837,7 @@ function updateTopbar(){
   const mt = $('mealTxt');
   mt.textContent = filled ? 'bowls filled' : 'topping up…';
   mt.style.color = filled ? 'var(--good)' : 'var(--ink-soft)';
-  $('feedLbl').textContent = 'Fresh food';
+  $('feedLbl').textContent = 'Feed all cats';
   const cd = Math.max(0, Math.ceil((G.treatReadyAt-Date.now())/1000));
   $('treatCd').textContent = cd ? '('+cd+'s)' : '';
   $('treatBtn').disabled = cd > 0;
