@@ -1687,9 +1687,17 @@ function layoutRoom(R, rect){
     dm.style.zIndex = 5;
   }
 
-  /* ---- food bowls, in a row on the mat ---- */
+  /* ---- food bowls: five on the diner mat plus four in the corners ---- */
+  const BOWL_SPOTS = [
+    /* diner mat, running diagonally across the middle */
+    {t:0.40, fx:0.08}, {t:0.50, fx:0.275}, {t:0.40, fx:0.47},
+    {t:0.50, fx:0.665}, {t:0.40, fx:0.86},
+    /* four corners so cats have somewhere near-by wherever they are */
+    {t:0.88, fx:0.10}, {t:0.88, fx:0.90},   /* front-left, front-right */
+    {t:0.22, fx:0.10}, {t:0.22, fx:0.90}    /* back-left,  back-right  */
+  ];
   let bowls = S.bowls.filter(b=>!b.personal && b.room===i);
-  while (bowls.length < 5){
+  while (bowls.length < BOWL_SPOTS.length){
     const el2 = document.createElement('div');
     el2.className = 'bowl';
     el2.innerHTML = bowlHTML();
@@ -1698,7 +1706,8 @@ function layoutRoom(R, rect){
     S.bowls.push(b); bowls.push(b);
   }
   bowls.forEach((b,k)=>{
-    const p = floorX(0.40 + (k%2)*0.10, 0.08 + k*0.195, i);
+    const spot = BOWL_SPOTS[k] || BOWL_SPOTS[0];
+    const p = floorX(spot.t, spot.fx, i);
     b.x = p.x; b.y = p.y;
     const s = depthScale(b.y);
     b.el.style.width = (60*s)+'px'; b.el.style.height = (34*s)+'px';
@@ -3404,13 +3413,12 @@ function handFeed(id, kind){
   c.finalRoom = undefined; c.crossTo = null;
   c.travel = 0; c.bestD = Infinity;
 
-  /* the food goes into a bowl in the diner — the cat walks over to it */
+  /* the food goes into a bowl in the diner — the cat walks over to it.
+     Only pick bowls in the cat's own room so it never crosses to another. */
   const mine = x => !x.personal && !x.taken && (x.room === undefined || x.room === roomIx(c));
   let b = S.bowls.filter(x=>mine(x) && x.food<=0)[0]
-       || S.bowls.filter(mine)[0]
-       || S.bowls.filter(x=>!x.personal && !x.taken && x.food<=0)[0]
-       || S.bowls.filter(x=>!x.personal && !x.taken)[0];
-  if (!b){                                        /* every bowl busy: put one out at the end */
+       || S.bowls.filter(mine)[0];
+  if (!b){                                        /* every local bowl busy: put one out at the end */
     const p = floorX(0.44, 0.72, roomIx(c));
     const s = depthScale(p.y);
     const el = document.createElement('div');
@@ -3466,6 +3474,16 @@ function tendBowls(dtReal){
   });
 }
 
+/* If every bowl in the cat's room happens to be taken when it tries, wait a
+   moment and try again. tendBowls refills empties on a slower cycle, and other
+   cats may finish eating, so a small number of retries usually gets everyone in. */
+function tryToEat(c, attemptsLeft){
+  if (!c || c.state === 'eat' || c.state === 'toBowl') return;
+  if (goEat(c)) return;
+  if (attemptsLeft > 0){
+    setTimeout(()=>tryToEat(c, attemptsLeft - 1), R(1500, 3200));
+  }
+}
 function serveMeal(){
   /* fill every bowl in every open room, then send every cat to a bowl in its own
      room. Sleepers wake, loungers come down, whoever was scratching or watching
@@ -3490,8 +3508,9 @@ function serveMeal(){
     c.drink = null; c.drinkAt = null;
     c.litter = null; c.litterAt = null;
     c.critter = null;
-    /* stagger so the whole café doesn't move in lockstep */
-    setTimeout(()=>{ if (c.state !== 'eat' && c.state !== 'toBowl') goEat(c); }, R(0, 2200));
+    /* stagger so the whole café doesn't move in lockstep, and retry a couple
+       of times if every local bowl was taken on the first attempt */
+    setTimeout(()=>tryToEat(c, 4), R(0, 2200));
   });
   updateTopbar(); save();
 }
