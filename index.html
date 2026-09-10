@@ -1013,7 +1013,9 @@ const COATS = [
   {breed:'Maine Coon',        base:'#6b4f38', light:'#8d6b4c', stripes:'#49331f', ear:'#c9948a', eye:'#c8a032', fluff:true},
   {breed:'Cream Longhair',    base:'#e2c9a0', light:'#f3dfba', ear:'#e6b4ac', eye:'#6fa8c8', fluff:true},
   {breed:'Smoke Longhair',    base:'#4e4e56', light:'#6b6b76', ear:'#b08a8a', eye:'#d4b04a', fluff:true},
-  {breed:'Chocolate Point',   base:'#dcc9b0', light:'#ece0cd', points:'#5a3b2c', ear:'#5a3b2c', eye:'#7ab4d0'}
+  {breed:'Chocolate Point',   base:'#dcc9b0', light:'#ece0cd', points:'#5a3b2c', ear:'#5a3b2c', eye:'#7ab4d0'},
+  {breed:'Ginger & White',    base:'#d97b3f', light:'#e89661', belly:'#f5f2ec', ear:'#e8b0a0', eye:'#c8a032'},
+  {breed:'Red Longhair',      base:'#c5602a', light:'#dc7a48', belly:'#f4e6d0', ear:'#e6a898', eye:'#c07a3a', fluff:true}
 ];
 
 /* Build one cat's SVG. c.coat holds the palette; `w` is pixel width. */
@@ -4448,12 +4450,17 @@ function init(){
     G.cats.push(makeCat(G, {name:'Teddy Jerome', gender:'M', coat: takeCoat('Bombay'),
                             born: G.t, newborn: true}));
     /* fill the rest with random cats — keep the male/female mix balanced by picking
-       the underrepresented gender each time (ties broken by a coin flip). */
-    for (let i=G.cats.length;i<START_CATS;i++){
+       the underrepresented gender each time (ties broken by a coin flip). Also
+       guarantee at least one red/white cat so the breeding mix always has one. */
+    const redBreed = chance(.5) ? 'Ginger & White' : 'Red Longhair';
+    const balancedGender = () => {
       const nF = G.cats.filter(c=>c.gender==='F').length;
       const nM = G.cats.filter(c=>c.gender==='M').length;
-      const g = nF < nM ? 'F' : nM < nF ? 'M' : (chance(.5) ? 'F' : 'M');
-      G.cats.push(makeCat(G, {coat: takeCoat(), gender: g}));
+      return nF < nM ? 'F' : nM < nF ? 'M' : (chance(.5) ? 'F' : 'M');
+    };
+    G.cats.push(makeCat(G, {coat: takeCoat(redBreed), gender: balancedGender()}));
+    while (G.cats.length < START_CATS){
+      G.cats.push(makeCat(G, {coat: takeCoat(), gender: balancedGender()}));
     }
     G.t = 8*60; G.lastDay = 1;
   }
