@@ -2724,19 +2724,30 @@ function decide(c){
   /* a drink, or a visit to the tray */
   if (!S.toys.length && roll > 0.55 && roll < 0.62 && goDrink(c)) return;
   if (!S.toys.length && roll > 0.47 && roll < 0.55 && goLitter(c)) return;
-  /* now and then, go and see what is happening in the room next door */
-  if (ROOMS.length > 1 && !S.toys.length && roll > 0.82 && chance(0.6)){
+  /* room-to-room wandering, biased toward under-populated rooms so the café stays
+     evenly spread. Cats in busy rooms leave more eagerly; when they do, they head
+     for the emptier of the adjacent rooms. */
+  if (ROOMS.length > 1 && !S.toys.length && roll > 0.68){
     const here = roomIx(c);
     const adj = [];
     if (here > 0) adj.push(here - 1);
     if (here < ROOMS.length - 1) adj.push(here + 1);
     if (adj.length){
-      const other = pick(adj);
-      const saved = c.room; c.room = other;
-      const p = randomFloorSpot(c);
-      c.room = saved;
-      headFor(c, p.x, p.y, other, 'walk');
-      return;
+      const catsIn = r => G.cats.reduce((n, o) => n + (roomIx(o) === r ? 1 : 0), 0);
+      const here_n = catsIn(here);
+      const avg = G.cats.length / ROOMS.length;
+      /* base chance 0.55, plus a boost proportional to how over-crowded this room is */
+      const leaveP = clamp(0.55 + Math.max(0, (here_n - avg) / Math.max(1, avg)) * 0.6, 0, 1);
+      if (chance(leaveP)){
+        const scored = adj.map(r => ({r, n: catsIn(r)})).sort((a, b) => a.n - b.n);
+        /* usually pick the emptier neighbour; occasionally the other, so it's not deterministic */
+        const other = (scored.length > 1 && chance(.28)) ? scored[1].r : scored[0].r;
+        const saved = c.room; c.room = other;
+        const p = randomFloorSpot(c);
+        c.room = saved;
+        headFor(c, p.x, p.y, other, 'walk');
+        return;
+      }
     }
   }
   /* a spell in front of the fish tank */
@@ -3338,8 +3349,8 @@ function advanceClock(){
    11. FOOD & TREATS
    ============================================================ */
 const FOODS = {
-  /* one meal adds +25 fullness and +25 energy, so four feeds fill either bar */
-  meal:  {icon:'🍽', name:'Food',  note:'A meal — +25% fullness and energy',   fill:25, energy:25, happy:7,  bond:2, meal:true,  cool:35, css:'food-wet'},
+  /* one meal adds +15 fullness and +15 energy */
+  meal:  {icon:'🍽', name:'Food',  note:'A meal — +15% fullness and energy',   fill:15, energy:15, happy:7,  bond:2, meal:true,  cool:35, css:'food-wet'},
   treat: {icon:'🐟', name:'Treat', note:'Barely food. Utterly worth it.',       fill:9,  energy:0,  happy:16, bond:5, meal:false, cool:12, css:'food-treat'}
 };
 
