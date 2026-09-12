@@ -4506,15 +4506,17 @@ function init(){
     G.cats.push(makeCat(G, {name:'Teddy Jerome', gender:'M', coat: takeCoat('Bombay'),
                             born: G.t, newborn: true}));
     /* fill the rest with random cats — keep the male/female mix balanced by picking
-       the underrepresented gender each time (ties broken by a coin flip). Also
-       guarantee at least one orange/white cat so the breeding mix always has one. */
-    const orangeBreed = chance(.5) ? 'Ginger & White' : 'Orange Longhair';
+       the underrepresented gender each time (ties broken by a coin flip). Both
+       orange/white breeds plus a ginger tabby are guaranteed in the mix so
+       there's always plenty of ginger to look at and to breed with. */
     const balancedGender = () => {
       const nF = G.cats.filter(c=>c.gender==='F').length;
       const nM = G.cats.filter(c=>c.gender==='M').length;
       return nF < nM ? 'F' : nM < nF ? 'M' : (chance(.5) ? 'F' : 'M');
     };
-    G.cats.push(makeCat(G, {coat: takeCoat(orangeBreed), gender: balancedGender()}));
+    G.cats.push(makeCat(G, {coat: takeCoat('Ginger & White'),  gender: balancedGender()}));
+    G.cats.push(makeCat(G, {coat: takeCoat('Orange Longhair'), gender: balancedGender()}));
+    G.cats.push(makeCat(G, {coat: takeCoat('Ginger Tabby'),    gender: balancedGender()}));
     while (G.cats.length < START_CATS){
       G.cats.push(makeCat(G, {coat: takeCoat(), gender: balancedGender()}));
     }
